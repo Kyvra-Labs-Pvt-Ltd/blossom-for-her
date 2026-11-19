@@ -1,0 +1,36 @@
+name: kyvra_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  http: ^1.6.0
+  video_player: ^2.11.1
+  flutter_reactive_ble: ^5.6.0
+  permission_handler: ^13.0.2
+  pdf: ^3.13.1
+  printing: ^5.15.1
+  image: ^4.13.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Registered the entire assets/images/ folder so any image inside it works automatically
+  assets:
+    - assets/images/
+    - assets/videos/blossom_intro.mp4

@@ -1,0 +1,12 @@
+{
+  "name": "blossom-intro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs",
+    "render:portrait": "node render.mjs --portrait"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

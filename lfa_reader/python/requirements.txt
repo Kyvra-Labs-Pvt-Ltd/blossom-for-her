@@ -1,0 +1,6 @@
+numpy
+scipy
+opencv-python
+matplotlib
+pyserial
+# tkinter ships with Python on Windows/macOS; on Linux: sudo apt install python3-tk

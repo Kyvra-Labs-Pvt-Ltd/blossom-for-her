@@ -1,0 +1,4505 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
+  runApp(const BlossomApp());
+}
+
+// ---------------------------------------------------------------------------
+// EDITORIAL BOTANICAL PALETTE & TYPOGRAPHY
+// ---------------------------------------------------------------------------
+const ink = Color(0xFF1C1917); // Deep warm espresso-charcoal
+const deepInk = Color(0xFF141210);
+const alabaster = Color(0xFFFBF9F5); // Tactile warm paper
+const sand = Color(0xFFF3EDE2); // Secondary card surface
+const sandDark = Color(0xFFE6DEC8);
+const borderStone = Color(0xFFE5DEC9);
+const stoneMuted = Color(0xFF78716C);
+
+// Phase & Hormone Accents
+const terracotta = Color(0xFFD96B43); // LH / Ovulatory
+const roseClay = Color(0xFFC85A70); // Menstrual / E3G
+const sageLeaf = Color(0xFF4A7C59); // FSH / Follicular
+const lutealIndigo = Color(0xFF5E6494); // PdG / Luteal
+const goldWarm = Color(0xFFD4A359);
+
+TextStyle serifStyle({
+  double size = 24,
+  FontWeight weight = FontWeight.w600,
+  Color color = ink,
+  double height = 1.15,
+  double letterSpacing = -0.4,
+  FontStyle? fontStyle,
+}) =>
+    GoogleFonts.fraunces(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+      fontStyle: fontStyle,
+    );
+
+TextStyle sansStyle({
+  double size = 14,
+  FontWeight weight = FontWeight.w500,
+  Color color = ink,
+  double height = 1.4,
+  double letterSpacing = 0,
+}) =>
+    GoogleFonts.plusJakartaSans(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+
+class BlossomApp extends StatelessWidget {
+  const BlossomApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final baseTheme = ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: alabaster,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: terracotta,
+        primary: ink,
+        secondary: terracotta,
+        surface: alabaster,
+      ),
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: alabaster,
+        foregroundColor: ink,
+        elevation: 0,
+      ),
+    );
+
+    return MaterialApp(
+      title: 'Blossom • Cycle & Hormone Intelligence',
+      debugShowCheckedModeBanner: false,
+      theme: baseTheme,
+      home: const WelcomeScreen(),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WELCOME SCREEN (CUSTOM BACKGROUND IMAGE + BREATHING AMBIENT ORBS)
+// ---------------------------------------------------------------------------
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
+
+  /// Place your custom background image at this path in your project
+  /// (and ensure `- assets/images/` is enabled in pubspec.yaml)
+  static const String backgroundImagePath = 'assets/images/welcome_bg.png';
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ambientCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ambientCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 7),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ambientCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: deepInk,
+      body: AnimatedBuilder(
+        animation: _ambientCtrl,
+        builder: (context, _) {
+          final t = _ambientCtrl.value;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. Custom Background Image (with automatic fallback gradient if image is missing)
+              Image.asset(
+                WelcomeScreen.backgroundImagePath,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                errorBuilder: (context, error, stackTrace) {
+                  return const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF261C1A),
+                          Color(0xFF151211),
+                          Color(0xFF2A1E23),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // 2. Dark editorial contrast overlay so text & orbs stay legible over any photo
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x73141210), // ~45% dark ink at top
+                      Color(0x8C141210), // ~55% in middle
+                      Color(0xCC141210), // ~80% at bottom behind CTA button
+                    ],
+                  ),
+                ),
+              ),
+
+              // 3. Breathing Ambient Orbs
+              Positioned(
+                top: -40 + (t * 25),
+                left: -50 + (t * 20),
+                child: const BotanicalOrb(size: 300, color: terracotta),
+              ),
+              Positioned(
+                right: -70,
+                top: 190 - (t * 30),
+                child: const BotanicalOrb(size: 280, color: roseClay),
+              ),
+              Positioned(
+                left: -60,
+                bottom: 70 + (t * 20),
+                child: const BotanicalOrb(size: 270, color: lutealIndigo),
+              ),
+
+              // 4. Foreground Content
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 28, 28, 28),
+                  child: Column(
+                    children: [
+                      const Spacer(flex: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(18),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withAlpha(36),
+                          ),
+                        ),
+                        child: Text(
+                          'BIORHYTHM & HORMONE INTELLIGENCE',
+                          style: sansStyle(
+                            color: const Color(0xFFE7D7C9),
+                            size: 10,
+                            weight: FontWeight.w700,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Bloss',
+                            style: serifStyle(
+                              color: alabaster,
+                              size: 54,
+                              weight: FontWeight.w500,
+                              letterSpacing: -1.5,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: Transform.rotate(
+                              angle: t * 0.35,
+                              child: const FlowerMark(size: 38),
+                            ),
+                          ),
+                          Text(
+                            'm',
+                            style: serifStyle(
+                              color: alabaster,
+                              size: 54,
+                              weight: FontWeight.w500,
+                              letterSpacing: -1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'F O R   H E R',
+                        style: sansStyle(
+                          color: terracotta,
+                          size: 11,
+                          weight: FontWeight.w700,
+                          letterSpacing: 3.5,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Container(
+                        width: 48,
+                        height: 1,
+                        color: terracotta.withAlpha(153),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Decode your hormonal landscape,\ncycle patterns, and daily signals.',
+                        textAlign: TextAlign.center,
+                        style: serifStyle(
+                          color: const Color(0xFFE6DFD5),
+                          size: 19,
+                          weight: FontWeight.w400,
+                          height: 1.5,
+                        ),
+                      ),
+                      const Spacer(flex: 3),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 58,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AuthScreen(),
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: terracotta,
+                            foregroundColor: alabaster,
+                            shape: const StadiumBorder(),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Begin Your Journal',
+                                style: sansStyle(
+                                  color: alabaster,
+                                  size: 15,
+                                  weight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Icon(Icons.arrow_forward_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'CLINICAL-GRADE INSIGHTS • PRIVATE BY DESIGN',
+                        textAlign: TextAlign.center,
+                        style: sansStyle(
+                          color: Colors.white54,
+                          size: 9,
+                          weight: FontWeight.w600,
+                          letterSpacing: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class BotanicalOrb extends StatelessWidget {
+  final double size;
+  final Color color;
+  const BotanicalOrb({super.key, required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              color.withAlpha(89),
+              color.withAlpha(0),
+            ],
+          ),
+        ),
+      );
+}
+
+class FlowerMark extends StatelessWidget {
+  final double size;
+  const FlowerMark({super.key, this.size = 34});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size * 1.15,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          for (int i = 0; i < 6; i++)
+            Transform.rotate(
+              angle: i * (math.pi / 3),
+              child: Align(
+                alignment: const Alignment(0, -0.46),
+                child: Container(
+                  width: size * 0.3,
+                  height: size * 0.48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [terracotta, roseClay],
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+              ),
+            ),
+          CircleAvatar(
+            radius: size * 0.12,
+            backgroundColor: const Color(0xFFF6E3BA),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AUTH SCREEN
+// ---------------------------------------------------------------------------
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  final name = TextEditingController(text: 'Aria'),
+      email = TextEditingController(text: 'aria@blossom.health'),
+      password = TextEditingController(text: 'hormones123');
+  bool login = false, hide = true;
+
+  @override
+  void dispose() {
+    name.dispose();
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  void submit() {
+    if (email.text.trim().isEmpty ||
+        password.text.length < 6 ||
+        (!login && name.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Enter your details. Password must be at least 6 characters.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!email.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address.')),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OnboardingScreen(
+          initialName: name.text.trim().isEmpty ? 'Aria' : name.text.trim(),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(
+          child: Stack(
+            children: [
+              const Positioned(
+                right: -80,
+                top: -80,
+                child: BotanicalOrb(size: 250, color: terracotta),
+              ),
+              SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(25, 12, 25, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: ink,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(child: FlowerMark(size: 36)),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        'Blossom',
+                        style: serifStyle(size: 32, color: ink),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Center(
+                      child: Text(
+                        'PERSONAL CYCLE & BIOMARKER STUDIO',
+                        style: sansStyle(
+                          color: stoneMuted,
+                          size: 9,
+                          weight: FontWeight.w700,
+                          letterSpacing: 1.6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      login ? 'Welcome back' : 'Create your profile',
+                      style: serifStyle(size: 30, color: ink),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      login
+                          ? 'Your cycle intelligence and logs are ready.'
+                          : 'Pre-filled for instant demo exploration — or customize below.',
+                      style: sansStyle(color: stoneMuted, size: 13),
+                    ),
+                    const SizedBox(height: 24),
+                    if (!login) ...[
+                      const FieldLabel('Preferred name'),
+                      const SizedBox(height: 7),
+                      StyledField(
+                        controller: name,
+                        hint: 'What should we call you?',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      const SizedBox(height: 15),
+                    ],
+                    const FieldLabel('Email address'),
+                    const SizedBox(height: 7),
+                    StyledField(
+                      controller: email,
+                      hint: 'you@example.com',
+                      icon: Icons.mail_outline_rounded,
+                      type: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 15),
+                    const FieldLabel('Password'),
+                    const SizedBox(height: 7),
+                    StyledField(
+                      controller: password,
+                      hint: 'At least 6 characters',
+                      icon: Icons.lock_outline_rounded,
+                      obscure: hide,
+                      suffix: IconButton(
+                        onPressed: () => setState(() => hide = !hide),
+                        icon: Icon(
+                          hide
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: ink,
+                          size: 19,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 26),
+                    PrimaryButton(
+                      label: login ? 'Sign In' : 'Continue to Calibration',
+                      onTap: submit,
+                    ),
+                    const SizedBox(height: 18),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => setState(() => login = !login),
+                        child: Text(
+                          login
+                              ? 'New to Blossom? Create an account'
+                              : 'Already have an account? Sign in',
+                          style: sansStyle(
+                            color: terracotta,
+                            size: 13,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class FieldLabel extends StatelessWidget {
+  final String text;
+  const FieldLabel(this.text, {super.key});
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: sansStyle(size: 12, weight: FontWeight.w700, color: ink),
+      );
+}
+
+class StyledField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType type;
+  final bool obscure;
+  final Widget? suffix;
+
+  const StyledField({
+    super.key,
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.type = TextInputType.text,
+    this.obscure = false,
+    this.suffix,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: controller,
+        keyboardType: type,
+        obscureText: obscure,
+        style: sansStyle(color: ink, size: 14, weight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: sansStyle(color: stoneMuted.withAlpha(153), size: 13),
+          prefixIcon: Icon(icon, color: stoneMuted, size: 20),
+          suffixIcon: suffix,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 17, horizontal: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: borderStone),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: borderStone),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: terracotta, width: 1.6),
+          ),
+        ),
+      );
+}
+
+class PrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final Color? backgroundColor;
+  const PrimaryButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: backgroundColor ?? ink,
+            foregroundColor: alabaster,
+            shape: const StadiumBorder(),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: sansStyle(
+                  color: alabaster,
+                  size: 14,
+                  weight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_rounded, size: 17),
+            ],
+          ),
+        ),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// ONBOARDING SCREEN
+// ---------------------------------------------------------------------------
+class OnboardingScreen extends StatefulWidget {
+  final String initialName;
+  const OnboardingScreen({super.key, this.initialName = ''});
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  int step = 0, age = 27, cycleLength = 28, periodLength = 5;
+  late final TextEditingController name;
+  DateTime lastPeriod = DateTime.now().subtract(const Duration(days: 11));
+  String regularity = 'Regular';
+  final Set<String> goals = {
+    'Understand my cycle',
+    'Monitor hormone trends',
+  };
+
+  final goalOptions = [
+    ('Understand my cycle', Icons.insights_rounded),
+    ('Monitor hormone trends', Icons.biotech_outlined),
+    ('Explore fertility window', Icons.spa_outlined),
+    ('Manage PMS & symptoms', Icons.healing_outlined),
+    ('Plan for pregnancy', Icons.favorite_border_rounded),
+    ('Energy & sleep sync', Icons.wb_twilight_rounded),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    name = TextEditingController(
+      text: widget.initialName.isEmpty ? 'Aria' : widget.initialName,
+    );
+  }
+
+  @override
+  void dispose() {
+    name.dispose();
+    super.dispose();
+  }
+
+  void next() {
+    if (step == 0 && name.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add a preferred name to continue.')),
+      );
+      return;
+    }
+    if (step < 3) {
+      setState(() => step++);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BlossomDashboard(
+            name: name.text.trim(),
+            age: age,
+            cycleLength: cycleLength,
+            periodLength: periodLength,
+            lastPeriod: lastPeriod,
+            goals: goals.toList(),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final titles = [
+      'Let’s calibrate your baseline',
+      'When did your last period start?',
+      'Your typical cycle rhythm',
+      'What would you like to track?',
+    ];
+    final subtitles = [
+      'Used to personalize your follicular and luteal phase models.',
+      'Tap the first day of full flow. You can edit or add dates anytime.',
+      'We dynamically adjust this as you log more cycles.',
+      'Select your focus areas to tailor daily hormone & symptom insights.',
+    ];
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 22, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: step == 0
+                        ? () => Navigator.pop(context)
+                        : () => setState(() => step--),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: ink,
+                      size: 18,
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CALIBRATION ${step + 1} OF 4',
+                          style: sansStyle(
+                            size: 10,
+                            weight: FontWeight.w700,
+                            color: stoneMuted,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: LinearProgressIndicator(
+                            value: (step + 1) / 4,
+                            minHeight: 5,
+                            backgroundColor: borderStone,
+                            color: terracotta,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlossomDashboard(
+                            name: name.text.trim().isEmpty
+                                ? 'Aria'
+                                : name.text.trim(),
+                            age: age,
+                            cycleLength: cycleLength,
+                            periodLength: periodLength,
+                            lastPeriod: lastPeriod,
+                            goals: goals.toList(),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Skip',
+                      style: sansStyle(
+                        size: 12,
+                        weight: FontWeight.w700,
+                        color: stoneMuted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                child: SingleChildScrollView(
+                  key: ValueKey(step),
+                  padding: const EdgeInsets.fromLTRB(25, 22, 25, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(titles[step], style: serifStyle(size: 30)),
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitles[step],
+                        style: sansStyle(color: stoneMuted, size: 13),
+                      ),
+                      const SizedBox(height: 26),
+                      if (step == 0) ...[
+                        const FieldLabel('Preferred first name'),
+                        const SizedBox(height: 8),
+                        StyledField(
+                          controller: name,
+                          hint: 'Your name',
+                          icon: Icons.person_outline_rounded,
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: borderStone),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const FieldLabel('Age'),
+                                  Text(
+                                    '$age years',
+                                    style: serifStyle(
+                                      size: 20,
+                                      color: terracotta,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Slider(
+                                value: age.toDouble(),
+                                min: 16,
+                                max: 55,
+                                divisions: 37,
+                                activeColor: terracotta,
+                                inactiveColor: sand,
+                                onChanged: (v) =>
+                                    setState(() => age = v.round()),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        infoCard(
+                          Icons.shield_outlined,
+                          'Local-first privacy',
+                          'Your cycle math and hormone simulations are computed on-device.',
+                        ),
+                      ],
+                      if (step == 1) ...[
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: borderStone),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  IconButton(
+                                    onPressed: () => setState(() {
+                                      lastPeriod = DateTime(
+                                        lastPeriod.year,
+                                        lastPeriod.month - 1,
+                                        1,
+                                      );
+                                    }),
+                                    icon: const Icon(
+                                      Icons.chevron_left_rounded,
+                                      color: ink,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_month(lastPeriod.month)} ${lastPeriod.year}',
+                                    style: serifStyle(size: 18),
+                                  ),
+                                  IconButton(
+                                    onPressed: DateTime(
+                                      lastPeriod.year,
+                                      lastPeriod.month + 1,
+                                      1,
+                                    ).isAfter(DateTime.now())
+                                        ? null
+                                        : () => setState(() {
+                                              lastPeriod = DateTime(
+                                                lastPeriod.year,
+                                                lastPeriod.month + 1,
+                                                1,
+                                              );
+                                            }),
+                                    icon: const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: ink,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              CalendarGrid(
+                                month: DateTime(
+                                  lastPeriod.year,
+                                  lastPeriod.month,
+                                ),
+                                selected: lastPeriod,
+                                maxDate: DateTime.now(),
+                                onSelect: (d) =>
+                                    setState(() => lastPeriod = d),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (step == 2) ...[
+                        Container(
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: borderStone),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'AVERAGE CYCLE LENGTH',
+                                style: sansStyle(
+                                  size: 10,
+                                  weight: FontWeight.w700,
+                                  color: stoneMuted,
+                                  letterSpacing: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  roundControl(
+                                    Icons.remove,
+                                    () => setState(() {
+                                      cycleLength =
+                                          (cycleLength - 1).clamp(21, 35);
+                                    }),
+                                  ),
+                                  const SizedBox(width: 28),
+                                  Column(
+                                    children: [
+                                      Text(
+                                        '$cycleLength',
+                                        style: serifStyle(
+                                          size: 52,
+                                          color: terracotta,
+                                        ),
+                                      ),
+                                      Text(
+                                        'days',
+                                        style: sansStyle(
+                                          size: 12,
+                                          color: stoneMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 28),
+                                  roundControl(
+                                    Icons.add,
+                                    () => setState(() {
+                                      cycleLength =
+                                          (cycleLength + 1).clamp(21, 35);
+                                    }),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 22),
+                              const Divider(color: borderStone),
+                              const SizedBox(height: 14),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const FieldLabel('Typical bleed duration'),
+                                  Text(
+                                    '$periodLength days',
+                                    style: serifStyle(
+                                      size: 18,
+                                      color: roseClay,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Slider(
+                                value: periodLength.toDouble(),
+                                min: 3,
+                                max: 8,
+                                divisions: 5,
+                                activeColor: roseClay,
+                                inactiveColor: sand,
+                                onChanged: (v) =>
+                                    setState(() => periodLength = v.round()),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (step == 3) ...[
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            for (final option in goalOptions)
+                              SizedBox(
+                                width:
+                                    (MediaQuery.of(context).size.width - 62) /
+                                        2,
+                                child: GoalTile(
+                                  title: option.$1,
+                                  icon: option.$2,
+                                  selected: goals.contains(option.$1),
+                                  onTap: () => setState(() {
+                                    if (goals.contains(option.$1)) {
+                                      if (goals.length > 1) {
+                                        goals.remove(option.$1);
+                                      }
+                                    } else {
+                                      goals.add(option.$1);
+                                    }
+                                  }),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
+              child: PrimaryButton(
+                label: step == 3 ? 'Launch Blossom Studio' : 'Continue',
+                onTap: next,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _month(int m) => const [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ][(m - 1).clamp(0, 11)];
+
+class CalendarGrid extends StatelessWidget {
+  final DateTime month;
+  final DateTime selected;
+  final DateTime? maxDate;
+  final ValueChanged<DateTime> onSelect;
+
+  const CalendarGrid({
+    super.key,
+    required this.month,
+    required this.selected,
+    this.maxDate,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final first = DateTime(month.year, month.month, 1);
+    final offset = first.weekday - 1;
+    final count = DateTime(month.year, month.month + 1, 0).day;
+    final lastDate = maxDate == null ? null : dateOnly(maxDate!);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 6,
+        crossAxisSpacing: 4,
+      ),
+      itemCount: offset + count,
+      itemBuilder: (context, i) {
+        if (i < offset) return const SizedBox();
+        final date = DateTime(month.year, month.month, i - offset + 1);
+        final isSelected = sameDate(date, selected);
+        final enabled = lastDate == null || !dateOnly(date).isAfter(lastDate);
+        return InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: enabled ? () => onSelect(date) : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? roseClay : null,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${date.day}',
+              style: sansStyle(
+                size: 13,
+                color: !enabled
+                    ? stoneMuted.withAlpha(77)
+                    : (isSelected ? alabaster : ink),
+                weight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class GoalTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const GoalTile({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: selected ? const Color(0xFFFAF0EA) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 118,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected ? terracotta : borderStone,
+                width: selected ? 1.6 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 24,
+                      color: selected ? terracotta : ink,
+                    ),
+                    if (selected)
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 18,
+                        color: terracotta,
+                      ),
+                  ],
+                ),
+                Text(
+                  title,
+                  style: sansStyle(
+                    color: ink,
+                    size: 13,
+                    weight: selected ? FontWeight.w700 : FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+Widget roundControl(IconData icon, VoidCallback onTap) => Material(
+      color: sand,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: ink),
+        ),
+      ),
+    );
+
+Widget infoCard(IconData icon, String title, String text) => Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: sand,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderStone),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: terracotta, size: 21),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: sansStyle(
+                    color: ink,
+                    size: 13,
+                    weight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  text,
+                  style: sansStyle(color: stoneMuted, size: 12, height: 1.45),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+// ---------------------------------------------------------------------------
+// DATE & CYCLE LOGIC HELPERS
+// ---------------------------------------------------------------------------
+DateTime dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+bool sameDate(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+String formatDateShort(DateTime date) =>
+    '${_month(date.month).substring(0, 3)} ${date.day}';
+
+String formatDateLong(DateTime date) =>
+    '${_month(date.month)} ${date.day}, ${date.year}';
+
+String _weekdayName(int weekday) => const [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ][(weekday - 1).clamp(0, 6)];
+
+enum CyclePhase {
+  menstrual(
+    label: 'Menstrual Phase',
+    shortLabel: 'Menstrual',
+    color: roseClay,
+    tagline: 'Hormones reset to baseline; rest & iron-rich nourishment help.',
+  ),
+  follicular(
+    label: 'Follicular Phase',
+    shortLabel: 'Follicular',
+    color: sageLeaf,
+    tagline: 'FSH stimulates follicles as E3G steadily climbs; energy rises.',
+  ),
+  ovulatory(
+    label: 'Ovulatory Window',
+    shortLabel: 'Ovulatory',
+    color: terracotta,
+    tagline: 'Peak E3G triggers a rapid LH surge 24–36h before egg release.',
+  ),
+  luteal(
+    label: 'Luteal Phase',
+    shortLabel: 'Luteal',
+    color: lutealIndigo,
+    tagline: 'Corpus luteum secretes progesterone (PdG); metabolism warms.',
+  );
+
+  final String label;
+  final String shortLabel;
+  final Color color;
+  final String tagline;
+  const CyclePhase({
+    required this.label,
+    required this.shortLabel,
+    required this.color,
+    required this.tagline,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// MAIN DASHBOARD STATE (WITH MULTI-CYCLE DATE MATH & HORMONE SYNC)
+// ---------------------------------------------------------------------------
+class BlossomDashboard extends StatefulWidget {
+  final String name;
+  final int age;
+  final int cycleLength;
+  final int periodLength;
+  final DateTime lastPeriod;
+  final List<String> goals;
+
+  const BlossomDashboard({
+    super.key,
+    required this.name,
+    required this.age,
+    required this.cycleLength,
+    required this.periodLength,
+    required this.lastPeriod,
+    required this.goals,
+  });
+
+  @override
+  State<BlossomDashboard> createState() => _BlossomDashboardState();
+}
+
+class _BlossomDashboardState extends State<BlossomDashboard> {
+  int tab = 0;
+  late DateTime selectedDate;
+  late DateTime visibleMonth;
+  late Set<DateTime> periodDays;
+  final Map<DateTime, Set<String>> symptomLogs = {};
+  final Map<DateTime, String> moodLogs = {};
+  final Map<DateTime, String> notes = {};
+  final Map<int, Map<String, double>> scannedTestResults = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final today = dateOnly(DateTime.now());
+    selectedDate = today;
+    visibleMonth = DateTime(today.year, today.month);
+    final firstPeriodDay = dateOnly(widget.lastPeriod);
+
+    // Seed two historical cycles so dynamic cycle math & insights feel alive
+    final priorStart =
+        firstPeriodDay.subtract(Duration(days: widget.cycleLength));
+    periodDays = {
+      for (var i = 0; i < widget.periodLength; i++)
+        firstPeriodDay.add(Duration(days: i)),
+      for (var i = 0; i < widget.periodLength; i++)
+        priorStart.add(Duration(days: i)),
+    };
+
+    // Seed a couple of realistic check-ins
+    symptomLogs[today.subtract(const Duration(days: 1))] = {'High energy'};
+    moodLogs[today] = 'Calm';
+  }
+
+  /// Extracts distinct first-days of contiguous period blocks.
+  List<DateTime> _periodStarts() {
+    final days = periodDays.toList()..sort();
+    return days
+        .where(
+          (day) => !periodDays.contains(day.subtract(const Duration(days: 1))),
+        )
+        .toList();
+  }
+
+  /// Dynamically computes average cycle length from logged period starts,
+  /// falling back to the user's onboarding setting.
+  int get _effectiveCycleLength {
+    final starts = _periodStarts();
+    if (starts.length >= 2) {
+      final diffs = <int>[];
+      for (var i = 1; i < starts.length; i++) {
+        final d = starts[i].difference(starts[i - 1]).inDays;
+        if (d >= 18 && d <= 42) diffs.add(d);
+      }
+      if (diffs.isNotEmpty) {
+        final avg = diffs.reduce((a, b) => a + b) / diffs.length;
+        return avg.round().clamp(21, 35);
+      }
+    }
+    return widget.cycleLength;
+  }
+
+  DateTime _cycleStartFor(DateTime date) {
+    final target = dateOnly(date);
+    final starts =
+        _periodStarts().where((start) => !start.isAfter(target)).toList();
+    if (starts.isNotEmpty) return starts.last;
+    if (_periodStarts().isNotEmpty) return _periodStarts().first;
+    return dateOnly(widget.lastPeriod);
+  }
+
+  int _cycleDayFor(DateTime date) {
+    final len = _effectiveCycleLength;
+    final elapsed = dateOnly(date).difference(_cycleStartFor(date)).inDays;
+    return ((elapsed % len) + len) % len + 1;
+  }
+
+  DateTime _nextPeriodFor(DateTime date) {
+    final len = _effectiveCycleLength;
+    var next = _cycleStartFor(date).add(Duration(days: len));
+    final target = dateOnly(date);
+    while (!next.isAfter(target)) {
+      next = next.add(Duration(days: len));
+    }
+    return next;
+  }
+
+  int get _ovulationCycleDay =>
+      (_effectiveCycleLength - 14).clamp(8, _effectiveCycleLength - 5);
+
+  bool _isFertileWindow(DateTime date) {
+    final day = _cycleDayFor(date);
+    return day >= (_ovulationCycleDay - 4) && day <= (_ovulationCycleDay + 1);
+  }
+
+  bool _isOvulationEstimate(DateTime date) =>
+      _cycleDayFor(date) == _ovulationCycleDay;
+
+  CyclePhase _phaseEnumFor(DateTime date) {
+    final day = dateOnly(date);
+    final cDay = _cycleDayFor(day);
+    if (periodDays.contains(day) || cDay <= widget.periodLength) {
+      return CyclePhase.menstrual;
+    }
+    if (_isFertileWindow(day)) {
+      return CyclePhase.ovulatory;
+    }
+    if (cDay > _ovulationCycleDay + 1) {
+      return CyclePhase.luteal;
+    }
+    return CyclePhase.follicular;
+  }
+
+  /// Projects future period days across the next 3 cycles so browsing future
+  /// months on the calendar shows accurate forecasts.
+  Set<DateTime> _forecastPeriodDays() {
+    final starts = _periodStarts();
+    final anchor = starts.isNotEmpty
+        ? starts.last
+        : dateOnly(widget.lastPeriod);
+    final len = _effectiveCycleLength;
+    final forecast = <DateTime>{};
+    for (int cycle = 1; cycle <= 4; cycle++) {
+      final start = anchor.add(Duration(days: len * cycle));
+      for (var i = 0; i < widget.periodLength; i++) {
+        forecast.add(start.add(Duration(days: i)));
+      }
+    }
+    return forecast;
+  }
+
+  void _setSelectedDate(DateTime date) {
+    final normalized = dateOnly(date);
+    setState(() {
+      selectedDate = normalized;
+      visibleMonth = DateTime(normalized.year, normalized.month);
+    });
+  }
+
+  void _togglePeriodDay(DateTime date) {
+    final normalized = dateOnly(date);
+    final wasLogged = periodDays.contains(normalized);
+    setState(() {
+      if (wasLogged) {
+        periodDays.remove(normalized);
+      } else {
+        periodDays.add(normalized);
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          wasLogged
+              ? 'Removed ${formatDateShort(normalized)} from period log.'
+              : 'Logged flow on ${formatDateShort(normalized)} • Cycle model updated.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _editSymptoms(DateTime date) async {
+    final day = dateOnly(date);
+    final chosen = {...(symptomLogs[day] ?? <String>{})};
+    const options = [
+      'Cramps',
+      'Clear skin',
+      'High energy',
+      'Bloating',
+      'Cervical mucus',
+      'Headache',
+      'Breast tenderness',
+      'Deep sleep',
+      'Cravings',
+      'Brain fog',
+    ];
+    final saved = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: alabaster,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(child: _SheetHandle()),
+                const SizedBox(height: 18),
+                Text(
+                  'Physical Signals • ${formatDateShort(day)}',
+                  style: serifStyle(size: 24),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Logging physical biomarkers refines your phase insights.',
+                  style: sansStyle(color: stoneMuted, size: 13),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: options.map((option) {
+                    final selected = chosen.contains(option);
+                    return FilterChip(
+                      label: Text(option),
+                      selected: selected,
+                      selectedColor: terracotta.withAlpha(41),
+                      backgroundColor: Colors.white,
+                      checkmarkColor: terracotta,
+                      side: BorderSide(
+                        color: selected ? terracotta : borderStone,
+                      ),
+                      labelStyle: sansStyle(
+                        size: 12,
+                        weight: selected ? FontWeight.w700 : FontWeight.w500,
+                        color: selected ? terracotta : ink,
+                      ),
+                      onSelected: (value) => setSheetState(() {
+                        if (value) {
+                          chosen.add(option);
+                        } else {
+                          chosen.remove(option);
+                        }
+                      }),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 22),
+                PrimaryButton(
+                  label: 'Save Signals (${chosen.length})',
+                  onTap: () => Navigator.pop(context, chosen),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (saved != null) {
+      setState(() {
+        if (saved.isEmpty) {
+          symptomLogs.remove(day);
+        } else {
+          symptomLogs[day] = saved;
+        }
+      });
+    }
+  }
+
+  Future<void> _editMood(DateTime date) async {
+    final day = dateOnly(date);
+    const options = <(String, String, String)>[
+      ('Radiant', '✨', 'Social, clear-headed & outward'),
+      ('Calm', '🌿', 'Grounded, steady nervous system'),
+      ('Focused', '🎯', 'Analytical & task-oriented'),
+      ('Reflective', '🌙', 'Inward, needing quiet space'),
+      ('Sensitive', '🌊', 'Heightened emotional receptivity'),
+      ('Fatigued', '☁️', 'Low battery, craving rest'),
+    ];
+    final mood = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: alabaster,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: _SheetHandle()),
+              const SizedBox(height: 16),
+              Text(
+                'Emotional State • ${formatDateShort(day)}',
+                style: serifStyle(size: 24),
+              ),
+              const SizedBox(height: 12),
+              ...options.map(
+                (entry) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: sand,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(entry.$2, style: const TextStyle(fontSize: 20)),
+                  ),
+                  title: Text(
+                    entry.$1,
+                    style: sansStyle(weight: FontWeight.w700, size: 14),
+                  ),
+                  subtitle: Text(
+                    entry.$3,
+                    style: sansStyle(color: stoneMuted, size: 12),
+                  ),
+                  trailing: moodLogs[day] == entry.$1
+                      ? const Icon(Icons.check_circle, color: terracotta)
+                      : const Icon(Icons.chevron_right_rounded,
+                          color: stoneMuted),
+                  onTap: () => Navigator.pop(context, entry.$1),
+                ),
+              ),
+              if (moodLogs.containsKey(day))
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, ''),
+                    child: Text(
+                      'Clear mood entry',
+                      style: sansStyle(color: roseClay, size: 12),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mood != null) {
+      setState(() {
+        if (mood.isEmpty) {
+          moodLogs.remove(day);
+        } else {
+          moodLogs[day] = mood;
+        }
+      });
+    }
+  }
+
+  Future<void> _editNote(DateTime date) async {
+    final day = dateOnly(date);
+    final controller = TextEditingController(text: notes[day] ?? '');
+    final note = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: alabaster,
+        title: Text(
+          'Journal • ${formatDateShort(day)}',
+          style: serifStyle(size: 22),
+        ),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          maxLength: 240,
+          autofocus: true,
+          style: sansStyle(size: 14),
+          decoration: InputDecoration(
+            hintText: 'Basal temperature, sleep quality, or personal reflections...',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: borderStone),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: sansStyle(color: stoneMuted)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ink),
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save Entry'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (note != null) {
+      setState(() {
+        if (note.isEmpty) {
+          notes.remove(day);
+        } else {
+          notes[day] = note;
+        }
+      });
+    }
+  }
+
+  /// Cross-references the selected day's hormone curves, phase, and user logs.
+  String _reactiveInsightFor(DateTime date) {
+    final day = dateOnly(date);
+    final cDay = _cycleDayFor(day);
+    final phase = _phaseEnumFor(day);
+    final daySymptoms = symptomLogs[day] ?? {};
+    final mood = moodLogs[day];
+
+    final e3g =
+        simulatedHormoneValues('E3G', _effectiveCycleLength)[cDay - 1].round();
+    final lh =
+        simulatedHormoneValues('LH', _effectiveCycleLength)[cDay - 1].round();
+    final pdg =
+        simulatedHormoneValues('PdG', _effectiveCycleLength)[cDay - 1].round();
+
+    final parts = <String>[];
+
+    if (phase == CyclePhase.ovulatory) {
+      parts.add(
+        'On Day $cDay, simulated E3G ($e3g idx) and LH ($lh idx) are approaching peak ovulatory velocity.',
+      );
+    } else if (phase == CyclePhase.luteal) {
+      parts.add(
+        'Day $cDay sits in your luteal window where PdG ($pdg idx) dominates to support endometrial stability.',
+      );
+    } else if (phase == CyclePhase.menstrual) {
+      parts.add(
+        'Day $cDay marks early-cycle baseline reset with low E3G ($e3g idx) and PdG ($pdg idx).',
+      );
+    } else {
+      parts.add(
+        'On Day $cDay, follicular recruitment is underway as E3G ($e3g idx) steadily builds.',
+      );
+    }
+
+    if (daySymptoms.isNotEmpty) {
+      parts.add(
+        'Your logged ${daySymptoms.join(" & ").toLowerCase()} aligns with this ${phase.shortLabel.toLowerCase()} shift.',
+      );
+    } else if (mood != null) {
+      parts.add(
+        'Feeling ${mood.toLowerCase()} is a helpful anchor to compare against next month’s Day $cDay.',
+      );
+    } else {
+      parts.add(
+        'Tap any signal card above to correlate how your body responds to today’s hormone ratio.',
+      );
+    }
+
+    return parts.join(' ');
+  }
+
+  Widget _homePage() {
+    final cDay = _cycleDayFor(selectedDate);
+    final cycleLen = _effectiveCycleLength;
+    final phase = _phaseEnumFor(selectedDate);
+    final nextPeriod = _nextPeriodFor(selectedDate);
+    final daysUntil = nextPeriod.difference(dateOnly(selectedDate)).inDays;
+    final weekStart = dateOnly(selectedDate)
+        .subtract(Duration(days: dateOnly(selectedDate).weekday - 1));
+    final isToday = sameDate(selectedDate, DateTime.now());
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Header Bar
+          Row(
+            children: [
+              const FlowerMark(size: 28),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Blossom',
+                    style: serifStyle(size: 21, weight: FontWeight.w700),
+                  ),
+                  Text(
+                    isToday
+                        ? 'TODAY • ${formatDateShort(selectedDate).toUpperCase()}'
+                        : 'VIEWING • ${formatDateShort(selectedDate).toUpperCase()}',
+                    style: sansStyle(
+                      size: 9,
+                      weight: FontWeight.w700,
+                      color: terracotta,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              if (!isToday)
+                TextButton.icon(
+                  onPressed: () => _setSelectedDate(DateTime.now()),
+                  icon: const Icon(Icons.today_rounded, size: 15),
+                  label: const Text('Today'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: terracotta,
+                    backgroundColor: terracotta.withAlpha(26),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => setState(() => tab = 4),
+                child: CircleAvatar(
+                  radius: 19,
+                  backgroundColor: sand,
+                  child: Text(
+                    (widget.name.isEmpty ? 'A' : widget.name[0]).toUpperCase(),
+                    style: serifStyle(size: 16, color: ink),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // Interactive Week Scrubber Strip
+          SizedBox(
+            height: 76,
+            child: Row(
+              children: List.generate(7, (index) {
+                final date = weekStart.add(Duration(days: index));
+                final selected = sameDate(date, selectedDate);
+                final isPeriod = periodDays.contains(date);
+                final isFertile = _isFertileWindow(date) && !isPeriod;
+                final hasLog = (symptomLogs[date]?.isNotEmpty ?? false) ||
+                    moodLogs.containsKey(date) ||
+                    notes.containsKey(date);
+
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => _setSelectedDate(date),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          color: selected ? ink : Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: selected
+                                ? ink
+                                : (isPeriod
+                                    ? roseClay.withAlpha(128)
+                                    : borderStone),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _weekdayName(date.weekday).substring(0, 1),
+                              style: sansStyle(
+                                size: 10,
+                                weight: FontWeight.w600,
+                                color: selected ? Colors.white60 : stoneMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${date.day}',
+                              style: serifStyle(
+                                size: 16,
+                                color: selected ? alabaster : ink,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (isPeriod || isFertile || hasLog)
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isPeriod
+                                          ? roseClay
+                                          : (isFertile
+                                              ? terracotta
+                                              : (selected
+                                                  ? goldWarm
+                                                  : lutealIndigo)),
+                                    ),
+                                  )
+                                else
+                                  const SizedBox(height: 5),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Hero Cycle Wheel & Phase Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: ink,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: ink.withAlpha(36),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: phase.color.withAlpha(56),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: phase.color.withAlpha(128),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: phase.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            phase.label.toUpperCase(),
+                            style: sansStyle(
+                              size: 9,
+                              weight: FontWeight.w700,
+                              color: alabaster,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: () => setState(() => tab = 2),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Hormone curves',
+                            style: sansStyle(
+                              size: 11,
+                              color: const Color(0xFFD6CEC2),
+                              weight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.arrow_outward_rounded,
+                            size: 14,
+                            color: terracotta,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    // Animated 360° Cycle Phase Ring
+                    TweenAnimationBuilder<double>(
+                      key: ValueKey('wheel-$cDay-$cycleLen'),
+                      tween: Tween(begin: 0.0, end: cDay / cycleLen),
+                      duration: const Duration(milliseconds: 650),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, progress, _) => SizedBox(
+                        width: 126,
+                        height: 126,
+                        child: CustomPaint(
+                          painter: CycleWheelPainter(
+                            progress: progress,
+                            cycleLength: cycleLen,
+                            periodLength: widget.periodLength,
+                            ovulationDay: _ovulationCycleDay,
+                            activeColor: phase.color,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'DAY',
+                                  style: sansStyle(
+                                    size: 9,
+                                    weight: FontWeight.w700,
+                                    color: Colors.white54,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                Text(
+                                  '$cDay',
+                                  style: serifStyle(
+                                    size: 38,
+                                    color: alabaster,
+                                    height: 1.05,
+                                  ),
+                                ),
+                                Text(
+                                  'of $cycleLen',
+                                  style: sansStyle(
+                                    size: 10,
+                                    color: Colors.white60,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            phase.tagline,
+                            style: serifStyle(
+                              size: 16,
+                              color: alabaster,
+                              weight: FontWeight.w400,
+                              height: 1.38,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.water_drop_outlined,
+                                size: 15,
+                                color: roseClay,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Next flow in $daysUntil d (${formatDateShort(nextPeriod)})',
+                                  style: sansStyle(
+                                    size: 11,
+                                    color: const Color(0xFFD6CEC2),
+                                    weight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.flare_rounded,
+                                size: 15,
+                                color: terracotta,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _isOvulationEstimate(selectedDate)
+                                      ? 'Estimated ovulation day'
+                                      : (_isFertileWindow(selectedDate)
+                                          ? 'Inside 6-day fertile window'
+                                          : 'Peak LH est. Cycle Day $_ovulationCycleDay'),
+                                  style: sansStyle(
+                                    size: 11,
+                                    color: const Color(0xFFD6CEC2),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+
+          // Live Hormone Snapshot Bar (Clickable -> Jumps to Graph)
+          InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () => setState(() => tab = 2),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: borderStone),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'DAY $cDay HORMONE PROFILE',
+                        style: sansStyle(
+                          size: 10,
+                          weight: FontWeight.w700,
+                          color: stoneMuted,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Interactive spline →',
+                        style: sansStyle(
+                          size: 11,
+                          weight: FontWeight.w700,
+                          color: terracotta,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: hormoneNames.map((h) {
+                      final vals = simulatedHormoneValues(h, cycleLen);
+                      final val = vals[(cDay - 1).clamp(0, vals.length - 1)];
+                      final col = hormoneColor(h);
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    h,
+                                    style: sansStyle(
+                                      size: 11,
+                                      weight: FontWeight.w700,
+                                      color: col,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${val.round()}',
+                                    style: serifStyle(size: 15, color: ink),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: LinearProgressIndicator(
+                                  value: (val / 100).clamp(0.0, 1.0),
+                                  minHeight: 5,
+                                  backgroundColor: sand,
+                                  color: col,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Daily Check-in Grid
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Daily Check-In', style: serifStyle(size: 22)),
+              Text(
+                formatDateShort(selectedDate),
+                style: sansStyle(
+                  size: 12,
+                  weight: FontWeight.w700,
+                  color: stoneMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _checkInCard(
+                  title: 'Period Flow',
+                  subtitle: periodDays.contains(dateOnly(selectedDate))
+                      ? 'Flow logged'
+                      : 'Tap to log bleed',
+                  icon: Icons.water_drop_outlined,
+                  accent: roseClay,
+                  active: periodDays.contains(dateOnly(selectedDate)),
+                  onTap: () => _togglePeriodDay(selectedDate),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _checkInCard(
+                  title: 'Symptoms',
+                  subtitle: (symptomLogs[dateOnly(selectedDate)]?.isNotEmpty ??
+                          false)
+                      ? symptomLogs[dateOnly(selectedDate)]!.join(', ')
+                      : 'Add body signals',
+                  icon: Icons.bolt_rounded,
+                  accent: terracotta,
+                  active:
+                      symptomLogs[dateOnly(selectedDate)]?.isNotEmpty ?? false,
+                  onTap: () => _editSymptoms(selectedDate),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _checkInCard(
+                  title: 'Mood State',
+                  subtitle: moodLogs[dateOnly(selectedDate)] ?? 'How do you feel?',
+                  icon: Icons.spa_outlined,
+                  accent: sageLeaf,
+                  active: moodLogs.containsKey(dateOnly(selectedDate)),
+                  onTap: () => _editMood(selectedDate),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _checkInCard(
+                  title: 'Journal Note',
+                  subtitle:
+                      notes[dateOnly(selectedDate)] ?? 'Write a private note',
+                  icon: Icons.edit_note_rounded,
+                  accent: lutealIndigo,
+                  active: notes.containsKey(dateOnly(selectedDate)),
+                  onTap: () => _editNote(selectedDate),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // Reactive Pattern Synthesis Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: sand,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: borderStone),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: terracotta,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'REACTIVE CYCLE SYNTHESIS',
+                      style: sansStyle(
+                        size: 10,
+                        weight: FontWeight.w700,
+                        color: ink,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _reactiveInsightFor(selectedDate),
+                  style: sansStyle(
+                    color: ink,
+                    size: 13,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _checkInCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accent,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: active ? accent.withAlpha(26) : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: active ? accent : borderStone,
+              width: active ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: active ? accent.withAlpha(51) : sand,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, color: active ? accent : ink, size: 19),
+                  ),
+                  Icon(
+                    active
+                        ? Icons.check_circle_rounded
+                        : Icons.add_circle_outline_rounded,
+                    color: active ? accent : stoneMuted,
+                    size: 18,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: sansStyle(size: 13, weight: FontWeight.w700, color: ink),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: sansStyle(
+                  size: 11,
+                  color: active ? accent : stoneMuted,
+                  weight: active ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final todayCycleDay = _cycleDayFor(selectedDate);
+    final effLen = _effectiveCycleLength;
+
+    final pages = <Widget>[
+      _homePage(),
+      CycleCalendarScreen(
+        visibleMonth: visibleMonth,
+        selectedDate: selectedDate,
+        cycleDay: todayCycleDay,
+        cycleLength: effLen,
+        phase: _phaseEnumFor(selectedDate),
+        nextPeriod: _nextPeriodFor(selectedDate),
+        periodDays: periodDays,
+        forecastPeriodDays: _forecastPeriodDays(),
+        isFertileWindow: _isFertileWindow,
+        isOvulationEstimate: _isOvulationEstimate,
+        onBack: () => setState(() => tab = 0),
+        onMonthChanged: (month) => setState(() => visibleMonth = month),
+        onSelectDate: _setSelectedDate,
+        onTogglePeriod: () => _togglePeriodDay(selectedDate),
+        onEditSymptoms: () => _editSymptoms(selectedDate),
+      ),
+      HormoneInsightsScreen(
+        cycleLength: effLen,
+        cycleDay: todayCycleDay,
+        periodLength: widget.periodLength,
+        ovulationDay: _ovulationCycleDay,
+        scannedResults: scannedTestResults,
+        onBack: () => setState(() => tab = 0),
+      ),
+      SimulatedTestScreen(
+        cycleLength: effLen,
+        cycleDay: todayCycleDay,
+        onBack: () => setState(() => tab = 0),
+        onSaveScan: (day, reading) {
+          setState(() {
+            scannedTestResults[day] = reading;
+          });
+        },
+        onViewChart: () => setState(() => tab = 2),
+      ),
+      ProfileScreen(
+        name: widget.name,
+        age: widget.age,
+        cycleLength: effLen,
+        periodLength: widget.periodLength,
+        loggedPeriodsCount: _periodStarts().length,
+        goals: widget.goals,
+        onBack: () => setState(() => tab = 0),
+      ),
+    ];
+
+    return Scaffold(
+      body: SafeArea(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          switchInCurve: Curves.easeOutCubic,
+          child: KeyedSubtree(key: ValueKey(tab), child: pages[tab]),
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: alabaster,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: terracotta.withAlpha(41),
+        selectedIndex: tab,
+        onDestinationSelected: (index) => setState(() => tab = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.wb_sunny_outlined),
+            selectedIcon: Icon(Icons.wb_sunny_rounded, color: terracotta),
+            label: 'Today',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded, color: terracotta),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.ssid_chart_rounded),
+            selectedIcon: Icon(Icons.ssid_chart_rounded, color: terracotta),
+            label: 'Hormones',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.biotech_outlined),
+            selectedIcon: Icon(Icons.biotech_rounded, color: terracotta),
+            label: 'Assay Scan',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded, color: terracotta),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 360° RADIAL CYCLE WHEEL PAINTER
+// ---------------------------------------------------------------------------
+class CycleWheelPainter extends CustomPainter {
+  final double progress;
+  final int cycleLength;
+  final int periodLength;
+  final int ovulationDay;
+  final Color activeColor;
+
+  CycleWheelPainter({
+    required this.progress,
+    required this.cycleLength,
+    required this.periodLength,
+    required this.ovulationDay,
+    required this.activeColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width / 2) - 8;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // Background track
+    final trackPaint = Paint()
+      ..color = Colors.white.withAlpha(31)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 9;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // Phase arcs
+    void drawDayArc(int startDay, int endDay, Color color) {
+      final startAngle =
+          -math.pi / 2 + ((startDay - 1) / cycleLength) * 2 * math.pi;
+      final sweepAngle =
+          ((endDay - startDay + 1) / cycleLength) * 2 * math.pi;
+      final paint = Paint()
+        ..color = color.withAlpha(97)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 9;
+      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+    }
+
+    drawDayArc(1, periodLength, roseClay);
+    drawDayArc(ovulationDay - 4, ovulationDay + 1, terracotta);
+
+    // Active progress arc
+    final activeSweep = (progress.clamp(0.0, 1.0)) * 2 * math.pi;
+    final activePaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 9;
+    canvas.drawArc(rect, -math.pi / 2, activeSweep, false, activePaint);
+
+    // Current Day Knob
+    final knobAngle = -math.pi / 2 + activeSweep;
+    final knobCenter = Offset(
+      center.dx + radius * math.cos(knobAngle),
+      center.dy + radius * math.sin(knobAngle),
+    );
+    canvas.drawCircle(knobCenter, 7, Paint()..color = alabaster);
+    canvas.drawCircle(knobCenter, 4.5, Paint()..color = activeColor);
+  }
+
+  @override
+  bool shouldRepaint(covariant CycleWheelPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.activeColor != activeColor;
+}
+
+class _SheetHandle extends StatelessWidget {
+  const _SheetHandle();
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: borderStone,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      );
+}
+
+class DashboardPageHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final VoidCallback onBack;
+
+  const DashboardPageHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Back to Today',
+              onPressed: onBack,
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: ink,
+                size: 18,
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: serifStyle(size: 26)),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      style: sansStyle(color: stoneMuted, size: 12),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// CYCLE CALENDAR SCREEN (MULTI-MONTH PROJECTION)
+// ---------------------------------------------------------------------------
+class CycleCalendarScreen extends StatelessWidget {
+  final DateTime visibleMonth;
+  final DateTime selectedDate;
+  final int cycleDay;
+  final int cycleLength;
+  final CyclePhase phase;
+  final DateTime nextPeriod;
+  final Set<DateTime> periodDays;
+  final Set<DateTime> forecastPeriodDays;
+  final bool Function(DateTime) isFertileWindow;
+  final bool Function(DateTime) isOvulationEstimate;
+  final VoidCallback onBack;
+  final ValueChanged<DateTime> onMonthChanged;
+  final ValueChanged<DateTime> onSelectDate;
+  final VoidCallback onTogglePeriod;
+  final VoidCallback onEditSymptoms;
+
+  const CycleCalendarScreen({
+    super.key,
+    required this.visibleMonth,
+    required this.selectedDate,
+    required this.cycleDay,
+    required this.cycleLength,
+    required this.phase,
+    required this.nextPeriod,
+    required this.periodDays,
+    required this.forecastPeriodDays,
+    required this.isFertileWindow,
+    required this.isOvulationEstimate,
+    required this.onBack,
+    required this.onMonthChanged,
+    required this.onSelectDate,
+    required this.onTogglePeriod,
+    required this.onEditSymptoms,
+  });
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DashboardPageHeader(
+              title: 'Cycle Calendar',
+              subtitle: 'Dynamic $cycleLength-day rhythm & fertile projections',
+              onBack: onBack,
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderStone),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => onMonthChanged(
+                          DateTime(visibleMonth.year, visibleMonth.month - 1),
+                        ),
+                        icon:
+                            const Icon(Icons.chevron_left_rounded, color: ink),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            '${_month(visibleMonth.month)} ${visibleMonth.year}',
+                            style: serifStyle(size: 20),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => onMonthChanged(
+                          DateTime(visibleMonth.year, visibleMonth.month + 1),
+                        ),
+                        icon:
+                            const Icon(Icons.chevron_right_rounded, color: ink),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                        .map(
+                          (label) => Expanded(
+                            child: Center(
+                              child: Text(
+                                label,
+                                style: sansStyle(
+                                  color: stoneMuted,
+                                  size: 10,
+                                  weight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  CycleDateGrid(
+                    month: visibleMonth,
+                    selected: selectedDate,
+                    today: dateOnly(DateTime.now()),
+                    periodDays: periodDays,
+                    forecastPeriodDays: forecastPeriodDays,
+                    isFertileWindow: isFertileWindow,
+                    isOvulationEstimate: isOvulationEstimate,
+                    onSelect: onSelectDate,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: const [
+                _CalendarLegend(color: roseClay, label: 'Logged flow'),
+                _CalendarLegend(
+                  color: Color(0xFFF3C6CE),
+                  label: 'Forecasted flow',
+                ),
+                _CalendarLegend(
+                  color: Color(0xFFF5D5C6),
+                  label: 'Fertile window',
+                ),
+                _CalendarLegend(color: terracotta, label: 'Ovulation peak'),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: ink,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        formatDateLong(selectedDate).toUpperCase(),
+                        style: sansStyle(
+                          color: Colors.white60,
+                          size: 10,
+                          weight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: phase.color.withAlpha(64),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          phase.label,
+                          style: sansStyle(
+                            color: alabaster,
+                            size: 10,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Cycle Day $cycleDay of $cycleLength',
+                    style: serifStyle(color: alabaster, size: 26),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    phase.tagline,
+                    style: sansStyle(color: Colors.white70, size: 12),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: onTogglePeriod,
+                          icon: Icon(
+                            periodDays.contains(dateOnly(selectedDate))
+                                ? Icons.remove_circle_outline
+                                : Icons.water_drop_rounded,
+                            size: 17,
+                          ),
+                          label: Text(
+                            periodDays.contains(dateOnly(selectedDate))
+                                ? 'Unlog Flow'
+                                : 'Log Flow Day',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: roseClay,
+                            foregroundColor: alabaster,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onEditSymptoms,
+                          icon: const Icon(Icons.bolt_rounded, size: 17),
+                          label: const Text('Log Signals'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: alabaster,
+                            side: const BorderSide(color: Colors.white30),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class CycleDateGrid extends StatelessWidget {
+  final DateTime month;
+  final DateTime selected;
+  final DateTime today;
+  final Set<DateTime> periodDays;
+  final Set<DateTime> forecastPeriodDays;
+  final bool Function(DateTime) isFertileWindow;
+  final bool Function(DateTime) isOvulationEstimate;
+  final ValueChanged<DateTime> onSelect;
+
+  const CycleDateGrid({
+    super.key,
+    required this.month,
+    required this.selected,
+    required this.today,
+    required this.periodDays,
+    required this.forecastPeriodDays,
+    required this.isFertileWindow,
+    required this.isOvulationEstimate,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final offset = DateTime(month.year, month.month, 1).weekday - 1;
+    final dayCount = DateTime(month.year, month.month + 1, 0).day;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 5,
+        crossAxisSpacing: 4,
+      ),
+      itemCount: offset + dayCount,
+      itemBuilder: (context, index) {
+        if (index < offset) return const SizedBox();
+        final date = DateTime(month.year, month.month, index - offset + 1);
+        final selectedDay = sameDate(date, selected);
+        final actualPeriod = periodDays.contains(date);
+        final estimatedPeriod =
+            forecastPeriodDays.contains(date) && !actualPeriod;
+        final fertile =
+            isFertileWindow(date) && !actualPeriod && !estimatedPeriod;
+        final ovulation =
+            isOvulationEstimate(date) && !actualPeriod && !estimatedPeriod;
+
+        final fill = selectedDay
+            ? ink
+            : (actualPeriod
+                ? roseClay
+                : (estimatedPeriod
+                    ? const Color(0xFFF9E2E6)
+                    : (fertile ? const Color(0xFFFAF0E6) : null)));
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: () => onSelect(date),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            decoration: BoxDecoration(
+              color: fill,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selectedDay
+                    ? ink
+                    : (ovulation
+                        ? terracotta
+                        : (sameDate(date, today)
+                            ? ink
+                            : Colors.transparent)),
+                width: selectedDay || ovulation || sameDate(date, today)
+                    ? 1.5
+                    : 0,
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  '${date.day}',
+                  style: sansStyle(
+                    color: selectedDay || actualPeriod ? alabaster : ink,
+                    size: 12,
+                    weight: selectedDay || actualPeriod || ovulation
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
+                ),
+                if (ovulation)
+                  Positioned(
+                    bottom: 3,
+                    child: Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: selectedDay ? alabaster : terracotta,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CalendarLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _CalendarLegend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(label, style: sansStyle(color: stoneMuted, size: 11)),
+        ],
+      );
+}
+
+// ---------------------------------------------------------------------------
+// HORMONE INSIGHTS & INTERACTIVE CUBIC SPLINE GRAPH
+// ---------------------------------------------------------------------------
+const List<String> hormoneNames = ['LH', 'E3G', 'PdG', 'FSH'];
+
+Color hormoneColor(String hormone) {
+  switch (hormone) {
+    case 'LH':
+      return terracotta;
+    case 'E3G':
+      return roseClay;
+    case 'PdG':
+      return lutealIndigo;
+    default:
+      return sageLeaf;
+  }
+}
+
+String hormoneFullName(String hormone) {
+  switch (hormone) {
+    case 'LH':
+      return 'Luteinizing Hormone';
+    case 'E3G':
+      return 'Estrone-3-Glucuronide (Estrogen)';
+    case 'PdG':
+      return 'Pregnanediol Glucuronide (Progesterone)';
+    default:
+      return 'Follicle-Stimulating Hormone';
+  }
+}
+
+String hormoneDescription(String hormone) {
+  switch (hormone) {
+    case 'LH':
+      return 'Surges rapidly 24–36 hours prior to egg release. Primary trigger for ovulation.';
+    case 'E3G':
+      return 'Urinary estrogen metabolite produced by dominant follicle; rises 3–5 days before LH peak.';
+    case 'PdG':
+      return 'Urinary progesterone metabolite; sustained post-ovulatory rise confirms luteal shift.';
+    default:
+      return 'Recruits ovarian follicles early in the cycle with a secondary mid-cycle pulse.';
+  }
+}
+
+List<double> simulatedHormoneValues(String hormone, int cycleLength) {
+  final safeLength = cycleLength.clamp(21, 35).toInt();
+  final ovulationDay = safeLength - 14.0;
+  return List<double>.generate(safeLength, (index) {
+    final day = index + 1.0;
+    double value;
+    switch (hormone) {
+      case 'LH':
+        value = 11 +
+            84 * math.exp(-0.5 * math.pow((day - ovulationDay) / 1.15, 2)) +
+            1.5 * math.sin(day * 0.7);
+        break;
+      case 'FSH':
+        value = 22 +
+            26 * math.exp(-0.5 * math.pow((day - 3.0) / 2.2, 2)) +
+            24 * math.exp(-0.5 * math.pow((day - ovulationDay) / 1.5, 2)) +
+            1.2 * math.sin(day * 0.55);
+        break;
+      case 'E3G':
+        value = 16 +
+            66 *
+                math.exp(
+                    -0.5 * math.pow((day - (ovulationDay - 1.5)) / 3.2, 2)) +
+            32 *
+                math.exp(
+                    -0.5 * math.pow((day - (ovulationDay + 6.5)) / 3.8, 2));
+        break;
+      default: // PdG
+        final lutealPeak = ovulationDay + 6.5;
+        value = 9 +
+            74 * math.exp(-0.5 * math.pow((day - lutealPeak) / 3.9, 2)) *
+                (day > ovulationDay - 1 ? 1.0 : 0.15);
+        break;
+    }
+    return value.clamp(5.0, 96.0).toDouble();
+  });
+}
+
+class HormoneInsightsScreen extends StatefulWidget {
+  final int cycleLength;
+  final int cycleDay;
+  final int periodLength;
+  final int ovulationDay;
+  final Map<int, Map<String, double>> scannedResults;
+  final VoidCallback onBack;
+
+  const HormoneInsightsScreen({
+    super.key,
+    required this.cycleLength,
+    required this.cycleDay,
+    required this.periodLength,
+    required this.ovulationDay,
+    required this.scannedResults,
+    required this.onBack,
+  });
+
+  @override
+  State<HormoneInsightsScreen> createState() => _HormoneInsightsScreenState();
+}
+
+class _HormoneInsightsScreenState extends State<HormoneInsightsScreen>
+    with SingleTickerProviderStateMixin {
+  String selectedHormone = 'LH';
+  bool overlayAllHormones = true;
+  late int scrubbedDay;
+  late AnimationController _chartAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    scrubbedDay = widget.cycleDay.clamp(1, widget.cycleLength);
+    _chartAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _chartAnim.dispose();
+    super.dispose();
+  }
+
+  void _selectHormone(String hormone) {
+    setState(() => selectedHormone = hormone);
+    _chartAnim.forward(from: 0.25);
+  }
+
+  void _updateScrubFromDx(double dx, double width) {
+    const leftPad = 32.0;
+    const rightPad = 12.0;
+    final usable = (width - leftPad - rightPad).clamp(1.0, double.infinity);
+    final rel = ((dx - leftPad) / usable).clamp(0.0, 1.0);
+    final newDay = (1 + rel * (widget.cycleLength - 1)).round().clamp(
+          1,
+          widget.cycleLength,
+        );
+    if (newDay != scrubbedDay) {
+      HapticFeedback.selectionClick();
+      setState(() => scrubbedDay = newDay);
+    }
+  }
+
+  String _phaseZoneForDay(int d) {
+    if (d <= widget.periodLength) return 'Menstrual';
+    if (d >= widget.ovulationDay - 4 && d <= widget.ovulationDay + 1) {
+      return d == widget.ovulationDay ? 'Ovulation Peak' : 'Fertile Window';
+    }
+    if (d > widget.ovulationDay + 1) return 'Luteal Phase';
+    return 'Follicular Phase';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final values = simulatedHormoneValues(selectedHormone, widget.cycleLength);
+    final safeDay = scrubbedDay.clamp(1, values.length);
+    final activeVal = values[safeDay - 1];
+    final prevVal = safeDay > 1 ? values[safeDay - 2] : activeVal;
+    final delta = activeVal - prevVal;
+    final color = hormoneColor(selectedHormone);
+
+    final graphHormones = overlayAllHormones
+        ? [
+            ...hormoneNames.where((h) => h != selectedHormone),
+            selectedHormone,
+          ]
+        : [selectedHormone];
+
+    final graphSeries = graphHormones
+        .map(
+          (h) => HormoneSeries(
+            label: h,
+            values: simulatedHormoneValues(h, widget.cycleLength),
+            color: hormoneColor(h),
+            highlighted: h == selectedHormone,
+          ),
+        )
+        .toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DashboardPageHeader(
+            title: 'Hormone Curves',
+            subtitle: 'Slide your finger across the graph to inspect any day',
+            onBack: widget.onBack,
+          ),
+
+          // Hormone Selector Pills + Compare Toggle
+          Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: hormoneNames.map((hormone) {
+                      final chosen = hormone == selectedHormone;
+                      final hColor = hormoneColor(hormone);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(hormone),
+                          selected: chosen,
+                          onSelected: (_) => _selectHormone(hormone),
+                          selectedColor: hColor,
+                          backgroundColor: Colors.white,
+                          labelStyle: sansStyle(
+                            size: 12,
+                            color: chosen ? alabaster : ink,
+                            weight: FontWeight.w700,
+                          ),
+                          side: BorderSide(color: chosen ? hColor : borderStone),
+                          shape: const StadiumBorder(),
+                          showCheckmark: false,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              FilterChip(
+                label: const Text('All 4'),
+                selected: overlayAllHormones,
+                onSelected: (v) {
+                  setState(() => overlayAllHormones = v);
+                  _chartAnim.forward(from: 0.3);
+                },
+                selectedColor: ink,
+                backgroundColor: Colors.white,
+                labelStyle: sansStyle(
+                  size: 11,
+                  color: overlayAllHormones ? alabaster : ink,
+                  weight: FontWeight.w700,
+                ),
+                showCheckmark: false,
+                shape: const StadiumBorder(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Main Interactive Chart Card
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: borderStone),
+              boxShadow: [
+                BoxShadow(
+                  color: ink.withAlpha(10),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Live Scrubber Header Callout
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: alabaster,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: borderStone),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withAlpha(38),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'DAY $safeDay ${safeDay == widget.cycleDay ? "• TODAY" : ""}',
+                              style: sansStyle(
+                                size: 10,
+                                weight: FontWeight.w700,
+                                color: color,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _phaseZoneForDay(safeDay),
+                            style: sansStyle(
+                              size: 12,
+                              weight: FontWeight.w700,
+                              color: stoneMuted,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${delta >= 0 ? "+" : ""}${delta.toStringAsFixed(1)} vs prev day',
+                            style: sansStyle(
+                              size: 11,
+                              weight: FontWeight.w700,
+                              color: delta >= 0 ? sageLeaf : roseClay,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: hormoneNames.map((h) {
+                          final hVals =
+                              simulatedHormoneValues(h, widget.cycleLength);
+                          final v = hVals[safeDay - 1];
+                          final isSel = h == selectedHormone;
+                          final hCol = hormoneColor(h);
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () => _selectHormone(h),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 3),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSel
+                                      ? hCol.withAlpha(31)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSel ? hCol : borderStone,
+                                    width: isSel ? 1.4 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      h,
+                                      style: sansStyle(
+                                        size: 10,
+                                        weight: FontWeight.w700,
+                                        color: hCol,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      v.toStringAsFixed(0),
+                                      style: serifStyle(
+                                        size: 18,
+                                        color: ink,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Interactive Touch-Scrubbable Spline Canvas
+                LayoutBuilder(
+                  builder: (context, constraints) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (d) => _updateScrubFromDx(
+                      d.localPosition.dx,
+                      constraints.maxWidth,
+                    ),
+                    onHorizontalDragUpdate: (d) => _updateScrubFromDx(
+                      d.localPosition.dx,
+                      constraints.maxWidth,
+                    ),
+                    child: AnimatedBuilder(
+                      animation: _chartAnim,
+                      builder: (context, _) => SizedBox(
+                        height: 255,
+                        width: double.infinity,
+                        child: CustomPaint(
+                          painter: HormoneSplineChartPainter(
+                            series: graphSeries,
+                            scrubbedDay: safeDay,
+                            todayCycleDay: widget.cycleDay,
+                            periodLength: widget.periodLength,
+                            ovulationDay: widget.ovulationDay,
+                            animationValue: Curves.easeOutCubic
+                                .transform(_chartAnim.value),
+                            scannedResults: widget.scannedResults,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Quick Day Slider
+                Row(
+                  children: [
+                    Text(
+                      'SCRUB',
+                      style: sansStyle(
+                        size: 9,
+                        weight: FontWeight.w700,
+                        color: stoneMuted,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 3,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 7,
+                          ),
+                        ),
+                        child: Slider(
+                          value: safeDay.toDouble(),
+                          min: 1,
+                          max: widget.cycleLength.toDouble(),
+                          activeColor: color,
+                          inactiveColor: sand,
+                          onChanged: (v) =>
+                              setState(() => scrubbedDay = v.round()),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Day $safeDay/${widget.cycleLength}',
+                      style: sansStyle(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Selected Biomarker Deep-Dive Card
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: borderStone),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        hormoneFullName(selectedHormone),
+                        style: serifStyle(size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  hormoneDescription(selectedHormone),
+                  style: sansStyle(color: stoneMuted, size: 13, height: 1.5),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const HormoneGuideScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.menu_book_outlined, size: 17),
+                    label: const Text('Clinical reference guide for all 4 markers'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: terracotta,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HormoneSeries {
+  final String label;
+  final List<double> values;
+  final Color color;
+  final bool highlighted;
+
+  const HormoneSeries({
+    required this.label,
+    required this.values,
+    required this.color,
+    this.highlighted = false,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// SMOOTH CATMULL-ROM / CUBIC BEZIER SPLINE CHART PAINTER
+// ---------------------------------------------------------------------------
+class HormoneSplineChartPainter extends CustomPainter {
+  final List<HormoneSeries> series;
+  final int scrubbedDay;
+  final int todayCycleDay;
+  final int periodLength;
+  final int ovulationDay;
+  final double animationValue;
+  final Map<int, Map<String, double>> scannedResults;
+
+  HormoneSplineChartPainter({
+    required this.series,
+    required this.scrubbedDay,
+    required this.todayCycleDay,
+    required this.periodLength,
+    required this.ovulationDay,
+    required this.animationValue,
+    required this.scannedResults,
+  });
+
+  Path _buildSmoothSpline(List<Offset> pts) {
+    final path = Path();
+    if (pts.isEmpty) return path;
+    path.moveTo(pts.first.dx, pts.first.dy);
+    if (pts.length == 1) return path;
+
+    for (int i = 0; i < pts.length - 1; i++) {
+      final p0 = i > 0 ? pts[i - 1] : pts[i];
+      final p1 = pts[i];
+      final p2 = pts[i + 1];
+      final p3 = i + 2 < pts.length ? pts[i + 2] : p2;
+
+      final cp1x = p1.dx + (p2.dx - p0.dx) / 6.0;
+      final cp1y = (p1.dy + (p2.dy - p0.dy) / 6.0).clamp(8.0, 220.0);
+      final cp2x = p2.dx - (p3.dx - p1.dx) / 6.0;
+      final cp2y = (p2.dy - (p3.dy - p1.dy) / 6.0).clamp(8.0, 220.0);
+
+      path.cubicTo(cp1x, cp1y, cp2x, cp2y, p2.dx, p2.dy);
+    }
+    return path;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (series.isEmpty || series.first.values.isEmpty) return;
+
+    const left = 32.0;
+    const right = 12.0;
+    const top = 20.0;
+    const bottom = 28.0;
+    final chartWidth = size.width - left - right;
+    final chartHeight = size.height - top - bottom;
+    if (chartWidth <= 0 || chartHeight <= 0) return;
+
+    final dayCount = series.first.values.length;
+    double yFor(double value) =>
+        top + chartHeight * (1 - (value * animationValue) / 100);
+    double xFor(int index) =>
+        left + (dayCount <= 1 ? 0.0 : index / (dayCount - 1)) * chartWidth;
+
+    // 1. Draw Phase Background Bands
+    void drawPhaseBand(int startDay, int endDay, Color color, String label) {
+      final x1 = xFor((startDay - 1).clamp(0, dayCount - 1));
+      final x2 = xFor((endDay - 1).clamp(0, dayCount - 1));
+      final rect = Rect.fromLTRB(x1, top, x2, top + chartHeight);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+        Paint()..color = color.withAlpha(17),
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: sansStyle(
+            color: color.withAlpha(191),
+            size: 8.5,
+            weight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      if (rect.width > tp.width + 6) {
+        tp.paint(canvas, Offset(x1 + 5, top + 4));
+      }
+    }
+
+    drawPhaseBand(1, periodLength, roseClay, 'MENSTRUAL');
+    drawPhaseBand(
+      ovulationDay - 4,
+      ovulationDay + 1,
+      terracotta,
+      'OVULATORY',
+    );
+    drawPhaseBand(
+      ovulationDay + 2,
+      dayCount,
+      lutealIndigo,
+      'LUTEAL',
+    );
+
+    // 2. Horizontal Grid Lines & Y-Axis Labels
+    final gridPaint = Paint()
+      ..color = borderStone.withAlpha(179)
+      ..strokeWidth = 1;
+
+    for (final level in [0, 25, 50, 75, 100]) {
+      final y = top + chartHeight * (1 - level / 100);
+      canvas.drawLine(
+        Offset(left, y),
+        Offset(size.width - right, y),
+        gridPaint,
+      );
+      final label = TextPainter(
+        text: TextSpan(
+          text: '$level',
+          style: sansStyle(color: stoneMuted, size: 9),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      label.paint(canvas, Offset(0, y - label.height / 2));
+    }
+
+    // 3. Draw Smooth Splines + Area Fills
+    for (final graph in series) {
+      final points = [
+        for (var i = 0; i < graph.values.length; i++)
+          Offset(xFor(i), yFor(graph.values[i])),
+      ];
+      final splinePath = _buildSmoothSpline(points);
+
+      if (graph.highlighted) {
+        final area = Path.from(splinePath)
+          ..lineTo(xFor(graph.values.length - 1), top + chartHeight)
+          ..lineTo(xFor(0), top + chartHeight)
+          ..close();
+        canvas.drawPath(
+          area,
+          Paint()
+            ..shader = LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                graph.color.withAlpha(71),
+                graph.color.withAlpha(3),
+              ],
+            ).createShader(Rect.fromLTWH(left, top, chartWidth, chartHeight)),
+        );
+      }
+
+      canvas.drawPath(
+        splinePath,
+        Paint()
+          ..color = graph.highlighted
+              ? graph.color
+              : graph.color.withAlpha(133)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = graph.highlighted ? 3.2 : 1.8
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
+    }
+
+    // 4. Vertical Scrubber Guide Line
+    final scrubIdx = (scrubbedDay - 1).clamp(0, dayCount - 1);
+    final scrubX = xFor(scrubIdx);
+    canvas.drawLine(
+      Offset(scrubX, top),
+      Offset(scrubX, top + chartHeight),
+      Paint()
+        ..color = ink.withAlpha(89)
+        ..strokeWidth = 1.4,
+    );
+
+    // 5. Draw Active Scrubber Nodes on Curves
+    for (final graph in series) {
+      final pt = Offset(scrubX, yFor(graph.values[scrubIdx]));
+      if (graph.highlighted) {
+        canvas.drawCircle(
+          pt,
+          10,
+          Paint()..color = graph.color.withAlpha(51),
+        );
+      }
+      canvas.drawCircle(
+        pt,
+        graph.highlighted ? 6.0 : 4.2,
+        Paint()..color = Colors.white,
+      );
+      canvas.drawCircle(
+        pt,
+        graph.highlighted ? 4.0 : 2.6,
+        Paint()..color = graph.color,
+      );
+    }
+
+    // 6. Plot any Scanned Assay Points
+    scannedResults.forEach((day, map) {
+      if (day >= 1 && day <= dayCount) {
+        for (final graph in series) {
+          if (graph.highlighted && map.containsKey(graph.label)) {
+            final pt = Offset(xFor(day - 1), yFor(map[graph.label]!));
+            canvas.drawCircle(pt, 6, Paint()..color = ink);
+            canvas.drawCircle(pt, 3, Paint()..color = goldWarm);
+          }
+        }
+      }
+    });
+
+    // 7. X-Axis Day Ticks
+    for (final day in {1, 7, ovulationDay, 21, dayCount}) {
+      if (day < 1 || day > dayCount) continue;
+      final x = xFor(day - 1);
+      final isOv = day == ovulationDay;
+      final label = TextPainter(
+        text: TextSpan(
+          text: isOv ? 'D$day★' : 'D$day',
+          style: sansStyle(
+            color: isOv ? terracotta : stoneMuted,
+            size: 9.5,
+            weight: isOv ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      label.paint(canvas, Offset(x - label.width / 2, top + chartHeight + 8));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant HormoneSplineChartPainter oldDelegate) =>
+      oldDelegate.series != series ||
+      oldDelegate.scrubbedDay != scrubbedDay ||
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.scannedResults != scannedResults;
+}
+
+// ---------------------------------------------------------------------------
+// HORMONE GUIDE SCREEN
+// ---------------------------------------------------------------------------
+class HormoneGuideScreen extends StatelessWidget {
+  const HormoneGuideScreen({super.key});
+
+  static const hormones = <({
+    String acronym,
+    String name,
+    String role,
+    String meaning,
+  })>[
+    (
+      acronym: 'LH',
+      name: 'Luteinizing Hormone',
+      role: 'Triggers dominant follicle rupture and egg release.',
+      meaning:
+          'A sharp mid-cycle surge precedes ovulation by 24–36 hours. Useful for pinpointing peak fertility.',
+    ),
+    (
+      acronym: 'E3G',
+      name: 'Estrone-3-Glucuronide',
+      role: 'Primary urinary metabolite of estradiol (E2).',
+      meaning:
+          'Rises progressively as ovarian follicles mature, opening the fertile window several days before the LH surge.',
+    ),
+    (
+      acronym: 'PdG',
+      name: 'Pregnanediol-3-Glucuronide',
+      role: 'Major urinary metabolite of progesterone.',
+      meaning:
+          'Elevated levels across multiple days following the LH peak help confirm that ovulation successfully occurred.',
+    ),
+    (
+      acronym: 'FSH',
+      name: 'Follicle-Stimulating Hormone',
+      role: 'Stimulates early ovarian follicle recruitment.',
+      meaning:
+          'Peaks early in the follicular phase to select the dominant follicle, with a secondary pulse alongside LH.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DashboardPageHeader(
+                  title: 'Biomarker Reference',
+                  subtitle: 'How multiplex urinary hormone panels map the cycle',
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+                for (final hormone in hormones)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: borderStone),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: hormoneColor(hormone.acronym)
+                                    .withAlpha(36),
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                              child: Text(
+                                hormone.acronym,
+                                style: sansStyle(
+                                  color: hormoneColor(hormone.acronym),
+                                  weight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                hormone.name,
+                                style: serifStyle(size: 18),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          hormone.role,
+                          style: sansStyle(weight: FontWeight.w700, size: 13),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          hormone.meaning,
+                          style: sansStyle(
+                            color: stoneMuted,
+                            size: 12,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// SIMULATED MULTIPLEX LFA TEST CASSETTE & OPTICAL SCANNER
+// ---------------------------------------------------------------------------
+class SimulatedTestScreen extends StatefulWidget {
+  final int cycleLength;
+  final int cycleDay;
+  final VoidCallback onBack;
+  final void Function(int day, Map<String, double> reading) onSaveScan;
+  final VoidCallback onViewChart;
+
+  const SimulatedTestScreen({
+    super.key,
+    required this.cycleLength,
+    required this.cycleDay,
+    required this.onBack,
+    required this.onSaveScan,
+    required this.onViewChart,
+  });
+
+  @override
+  State<SimulatedTestScreen> createState() => _SimulatedTestScreenState();
+}
+
+class _SimulatedTestScreenState extends State<SimulatedTestScreen>
+    with SingleTickerProviderStateMixin {
+  late int testDay;
+  bool scanning = false;
+  bool resultReady = false;
+  late AnimationController _scanCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    testDay = widget.cycleDay.clamp(1, widget.cycleLength);
+    _scanCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scanCtrl.dispose();
+    super.dispose();
+  }
+
+  Map<String, double> _currentReadings() {
+    final map = <String, double>{};
+    for (final h in hormoneNames) {
+      final vals = simulatedHormoneValues(h, widget.cycleLength);
+      map[h] = vals[(testDay - 1).clamp(0, vals.length - 1)];
+    }
+    return map;
+  }
+
+  Future<void> _runScan() async {
+    setState(() {
+      scanning = true;
+      resultReady = false;
+    });
+    await _scanCtrl.forward(from: 0.0);
+    if (!mounted) return;
+    final readings = _currentReadings();
+    widget.onSaveScan(testDay, readings);
+    setState(() {
+      scanning = false;
+      resultReady = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final readings = _currentReadings();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DashboardPageHeader(
+            title: 'Multiplex Assay Lab',
+            subtitle: 'Simulated 4-channel lateral flow strip optical reader',
+            onBack: widget.onBack,
+          ),
+
+          // Day Picker for Simulation
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: borderStone),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'SIMULATE CYCLE DAY SAMPLE',
+                      style: sansStyle(
+                        size: 10,
+                        weight: FontWeight.w700,
+                        color: stoneMuted,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Text(
+                      'Cycle Day $testDay',
+                      style: serifStyle(size: 18, color: terracotta),
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: testDay.toDouble(),
+                  min: 1,
+                  max: widget.cycleLength.toDouble(),
+                  divisions: widget.cycleLength - 1,
+                  activeColor: terracotta,
+                  inactiveColor: sand,
+                  onChanged: (v) => setState(() {
+                    testDay = v.round();
+                    resultReady = false;
+                  }),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Visual Lateral Flow Cassette Preview
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: ink,
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'OPTICAL CASSETTE WINDOW',
+                      style: sansStyle(
+                        size: 10,
+                        weight: FontWeight.w700,
+                        color: Colors.white60,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'AuNP COLORIMETRIC DEMO',
+                        style: sansStyle(
+                          size: 9,
+                          color: goldWarm,
+                          weight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Nitrocellulose Strip Visualizer
+                AnimatedBuilder(
+                  animation: _scanCtrl,
+                  builder: (context, _) {
+                    return Container(
+                      height: 88,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: alabaster,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFD6CFC2),
+                          width: 3,
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              // Control Line (C)
+                              const _StripLineColumn(
+                                label: 'CTRL',
+                                intensity: 0.95,
+                                bandColor: Color(0xFF9E2A47),
+                              ),
+                              for (final h in hormoneNames)
+                                _StripLineColumn(
+                                  label: h,
+                                  intensity: (readings[h]! / 100).clamp(
+                                    0.12,
+                                    0.98,
+                                  ),
+                                  bandColor: const Color(0xFFB33958),
+                                ),
+                            ],
+                          ),
+                          if (scanning)
+                            Positioned(
+                              left: _scanCtrl.value *
+                                  (MediaQuery.of(context).size.width - 110),
+                              top: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 4,
+                                decoration: BoxDecoration(
+                                  color: terracotta,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: terracotta.withAlpha(153),
+                                      blurRadius: 12,
+                                      spreadRadius: 3,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: scanning ? null : _runScan,
+                    icon: Icon(
+                      scanning
+                          ? Icons.radar_rounded
+                          : Icons.camera_enhance_outlined,
+                    ),
+                    label: Text(
+                      scanning
+                          ? 'Scanning T/C Line Ratios...'
+                          : (resultReady
+                              ? 'Re-Scan Strip & Update Curve'
+                              : 'Scan Multiplex Strip'),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: terracotta,
+                      foregroundColor: alabaster,
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          if (resultReady) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: borderStone),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'QUANTIFIED DEMO INDICES • DAY $testDay',
+                        style: sansStyle(
+                          size: 10,
+                          weight: FontWeight.w700,
+                          color: stoneMuted,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Text(
+                        'Plotted to chart ✓',
+                        style: sansStyle(
+                          size: 11,
+                          weight: FontWeight.w700,
+                          color: sageLeaf,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  for (final h in hormoneNames)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: hormoneColor(h).withAlpha(36),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              h,
+                              style: sansStyle(
+                                color: hormoneColor(h),
+                                weight: FontWeight.w700,
+                                size: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  hormoneFullName(h),
+                                  style: sansStyle(
+                                    size: 13,
+                                    weight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: LinearProgressIndicator(
+                                    value: (readings[h]! / 100).clamp(0.0, 1.0),
+                                    minHeight: 6,
+                                    backgroundColor: sand,
+                                    color: hormoneColor(h),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            readings[h]!.toStringAsFixed(0),
+                            style: serifStyle(size: 20),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  PrimaryButton(
+                    label: 'Inspect on Interactive Spline Chart',
+                    onTap: widget.onViewChart,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StripLineColumn extends StatelessWidget {
+  final String label;
+  final double intensity;
+  final Color bandColor;
+
+  const _StripLineColumn({
+    required this.label,
+    required this.intensity,
+    required this.bandColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final alphaVal = (intensity.clamp(0.1, 1.0) * 255).round();
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Container(
+            width: 8,
+            decoration: BoxDecoration(
+              color: bandColor.withAlpha(alphaVal),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: sansStyle(
+            size: 9,
+            weight: FontWeight.w700,
+            color: ink,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PROFILE SCREEN
+// ---------------------------------------------------------------------------
+class ProfileScreen extends StatelessWidget {
+  final String name;
+  final int age;
+  final int cycleLength;
+  final int periodLength;
+  final int loggedPeriodsCount;
+  final List<String> goals;
+  final VoidCallback onBack;
+
+  const ProfileScreen({
+    super.key,
+    required this.name,
+    required this.age,
+    required this.cycleLength,
+    required this.periodLength,
+    required this.loggedPeriodsCount,
+    required this.goals,
+    required this.onBack,
+  });
+
+  void _logOut(BuildContext context) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DashboardPageHeader(
+              title: 'Profile & Calibration',
+              subtitle: 'Your cycle parameters and active focus areas',
+              onBack: onBack,
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderStone),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: terracotta.withAlpha(38),
+                        child: Text(
+                          (name.isEmpty ? 'A' : name[0]).toUpperCase(),
+                          style: serifStyle(size: 22, color: terracotta),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name.isEmpty ? 'Blossom Member' : name,
+                              style: serifStyle(size: 22),
+                            ),
+                            Text(
+                              '$age years • $loggedPeriodsCount cycles logged',
+                              style: sansStyle(color: stoneMuted, size: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(color: borderStone),
+                  const SizedBox(height: 12),
+                  _ProfileDetail(
+                    label: 'Dynamic cycle length',
+                    value: '$cycleLength days',
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileDetail(
+                    label: 'Typical bleed duration',
+                    value: '$periodLength days',
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileDetail(
+                    label: 'Active tracking goals',
+                    value:
+                        goals.isEmpty ? 'General cycle awareness' : goals.join(' • '),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () => _logOut(context),
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text('Reset Session & Log Out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: roseClay,
+                  side: const BorderSide(color: roseClay),
+                  shape: const StadiumBorder(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ProfileDetail extends StatelessWidget {
+  final String label;
+  final String value;
+  const _ProfileDetail({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: sansStyle(color: stoneMuted, size: 11)),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: sansStyle(color: ink, size: 14, weight: FontWeight.w700),
+          ),
+        ],
+      );
+}
