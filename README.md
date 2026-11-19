@@ -10,7 +10,7 @@ Flutter companion app for the Kyvra Labs Blossom for Her hormone reader. It brin
 
 ## Install and run the APK on an Android phone
 
-1. Obtain `app-debug.apk` from the project maintainer, or download `blossom-for-her-debug.apk` from [Releases]([Releases](https://github.com/Kyvra-Labs-Pvt-Ltd/blossom-for-her/releases/latest). Access to a private repository requires an authorized GitHub account.
+1. Obtain `app-debug.apk` from the project maintainer, or download `blossom-for-her-debug.apk` from [Releases](https://github.com/Kyvra-Labs-Pvt-Ltd/blossom-for-her/releases/latest). Access to a private repository requires an authorized GitHub account.
 2. Transfer the APK to your phone using a USB cable, a file-sharing service, or a direct download.
 3. Open the APK in your phone's Files app. If prompted, allow **Install unknown apps** for the app opening the file, then tap **Install**.
 4. Open **Blossom for Her**. Choose **Begin your journey** to enter your profile, or **Explore Demo** to explore the interface.
